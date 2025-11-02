@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Test - MediMind AI{% endblock %}
+
+{% block content %}
+<div class="test-container p-4">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="mb-2">AI-Powered Diagnostic Tests</h2>
+            <p class="text-muted">For patient: <span class="fw-bold">{{ patient.name }}</span></p>
+            
+            {% for message in get_flashed_messages() %}
+            <div class="alert alert-info">{{ message }}</div>
+            {% endfor %}
+            
+            <hr class="my-4">
+            
+            <h4>Step 1: Select a Test</h4>
+            
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="test-card active" data-test="chest_xray">
+                        <div class="test-card-body">
+                            <h5 class="mb-2">Chest X-Ray Analysis</h5>
+                            <p class="mb-0">Detects common abnormalities in chest X-rays, including pneumonia and lung masses.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="test-card" data-test="lung_cancer">
+                        <div class="test-card-body">
+                            <h5 class="mb-2">Lung Cancer CT Scan</h5>
+                            <p class="mb-0">Analyzes CT scan images to classify lung tumors as malignant or non-malignant. 96.8% accuracy.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="test-card" data-test="covid_19">
+                        <div class="test-card-body">
+                            <h5 class="mb-2">COVID-19 Detection</h5>
+                            <p class="mb-0">Analyzes chest X-rays to identify potential signs of COVID-19 infection.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h4 class="mt-5">Step 2: Upload Scan/Image</h4>
+            
+            <form action="{{ url_for('test', patient_id=patient.id) }}" method="post" enctype="multipart/form-data" id="testForm" class="mt-4">
+                <input type="hidden" name="test_type" id="selectedTest" value="chest_xray">
+                
+                <div class="drop-zone mb-4">
+                    <span class="drop-zone__prompt">
+                        <i class="fas fa-cloud-upload-alt mb-3" style="font-size: 3rem;"></i>
+                        <br>Drag & drop file here, or click to select file
+                    </span>
+                    <input type="file" name="image" class="drop-zone__input" id="imageUpload" accept="image/*">
+                </div>
+                
+                <div class="image-preview mb-4" id="imagePreview" style="display: none;">
+                    <img id="preview" src="" alt="Preview" class="img-fluid rounded">
+                    <button type="button" class="btn-close" id="removeImage"></button>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg" id="startAnalysisBtn" disabled>
+                        <i class="fas fa-vial me-2"></i>Start Analysis
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .test-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        height: 100%;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .test-card.active {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25);
+    }
+    
+    .drop-zone {
+        max-width: 100%;
+        height: 200px;
+        padding: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        cursor: pointer;
+        border: 2px dashed #ddd;
+        border-radius: 10px;
+    }
+    
+    .drop-zone--over {
+        border-color: #0d6efd;
+    }
+    
+    .drop-zone__input {
+        display: none;
+    }
+    
+    .drop-zone__prompt {
+        color: #777;
+    }
+    
+    .image-preview {
+        position: relative;
+    }
+    
+    .image-preview .btn-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: white;
+        border-radius: 50%;
+        padding: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Test selection
+    const testCards = document.querySelectorAll('.test-card');
+    const selectedTestInput = document.getElementById('selectedTest');
+    
+    testCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Remove active class from all cards
+            testCards.forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked card
+            this.classList.add('active');
+            
+            // Update hidden input value
+            selectedTestInput.value = this.dataset.test;
+        });
+    });
+    
+    // Drag and drop file upload
+    const dropZone = document.querySelector('.drop-zone');
+    const fileInput = document.querySelector('.drop-zone__input');
+    const startBtn = document.getElementById('startAnalysisBtn');
+    const imagePreview = document.getElementById('imagePreview');
+    const preview = document.getElementById('preview');
+    const removeImageBtn = document.getElementById('removeImage');
+    
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', (e) => {
+        if (fileInput.files.length) {
+            updateThumbnail(fileInput.files[0]);
+        }
+    });
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drop-zone--over');
+    });
+    
+    ['dragleave', 'dragend'].forEach(type => {
+        dropZone.addEventListener(type, () => {
+            dropZone.classList.remove('drop-zone--over');
+        });
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            updateThumbnail(e.dataTransfer.files[0]);
+        }
+        
+        dropZone.classList.remove('drop-zone--over');
+    });
+    
+    removeImageBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        imagePreview.style.display = 'none';
+        dropZone.style.display = 'flex';
+        startBtn.disabled = true;
+    });
+    
+    function updateThumbnail(file) {
+        if (!file.type.startsWith('image/')) {
+            alert('Please upload an image file');
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = () => {
+            preview.src = reader.result;
+            dropZone.style.display = 'none';
+            imagePreview.style.display = 'block';
+            startBtn.disabled = false;
+        };
+        
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}

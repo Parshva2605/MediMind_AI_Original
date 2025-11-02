@@ -1,0 +1,105 @@
+LUNG CANCER CT MODEL (Simple Notes)
+===================================
+
+1) What is this model?
+- File: D:\Lungs_Cancer\checkpoints\stage2_best.h5 (weights only)
+- Task: Detect lung cancer on CT images.
+- Output options:
+  • 3 classes: Benign, Malignant, Normal (training-time)
+  • Binary (recommended): Malignant vs Non‑malignant (Benign+Normal)
+
+2) Which dataset was used?
+- Name: IQ-OTHNCCD Lung Cancer Dataset
+- Structure (folders):
+  • Bengin cases (Benign)
+  • Malignant cases
+  • Normal cases
+- Location example in this project:
+  D:\Lungs_Cancer\Datatset\The IQ-OTHNCCD lung cancer dataset\The IQ-OTHNCCD lung cancer dataset\
+
+3) How were the images preprocessed? (very important)
+- Convert to Grayscale (from RGB)
+- Resize to 512 x 512 pixels
+- Apply CLAHE (contrast enhancement)
+  • clipLimit=2.0, tileGridSize=(8,8)
+- Normalize pixel values to [0, 1]
+- Stack to 3 channels (gray → 3-channel) for EfficientNet
+
+4) How was the model built? (architecture)
+- Backbone: EfficientNetB3 (include_top=False, ImageNet weights)
+- Input shape: 512 x 512 x 3
+- Custom head (top layers):
+  • GlobalAveragePooling2D
+  • BatchNormalization
+  • Dense(512, activation=relu, L2=0.001) → Dropout(0.5)
+  • BatchNormalization
+  • Dense(256, activation=relu, L2=0.001) → Dropout(0.4)
+  • BatchNormalization
+  • Dense(128, activation=relu, L2=0.001) → Dropout(0.3)
+  • BatchNormalization
+  • Dense(3, activation=softmax)  ← 3-class output at training
+- For binary usage at inference we map: Malignant vs (Benign+Normal)
+
+5) How was it trained? (simple steps)
+- Split: Train/Validation (about 80/20)
+- Two stages:
+  • Stage 1: Train only the top (head). EfficientNet backbone frozen.
+    - Moderate data augmentation.
+  • Stage 2: Fine-tune end of EfficientNet (unfreeze from layer ~150).
+    - Lower learning rate, gradient clipping to keep training stable.
+- Save best weights by validation score → stage2_best.h5
+
+6) How long did it take?
+- Exact total time was not measured.
+- Typical time depends on hardware:
+  • CPU only: many hours.
+  • Good GPU: from under 1 hour to a few hours (depends on settings).
+- Evaluations and predictions: usually seconds to a few minutes.
+
+7) Accuracy (measured on validation set in this project)
+- 3-class overall accuracy: 85.84%
+  • Benign: very weak
+  • Malignant: 94.6% accuracy
+  • Normal: 98.8% accuracy
+- Binary (Malignant vs Non‑malignant): ~96.8% overall
+  • Malignant recall ≈ 94.6%
+  • Non‑malignant specificity ≈ 99.1%
+
+8) How to use it (easy)
+- Simple one‑line prediction (prints only Malignant / Non‑malignant):
+  • File: simple_predict.py
+  • Edit MODEL_PATH and IMAGE_PATH at the top (or pass image as argument)
+  Example (PowerShell):
+    python .\simple_predict.py "D:\path\to\image.jpg"
+
+- Full binary tool with CSV/output and threshold:
+  • File: 0_final_check.py
+  • Default model path is already set; you can override with --weights
+  Examples:
+    python .\0_final_check.py --smoke_test --print_info
+    python .\0_final_check.py --images "D:\path\to\folder" --assume_label Non-malignant --output_csv out.csv
+
+- 3-class tool (if needed):
+  • File: 1_final_check.py (prints Benign/Malignant/Normal and per‑class probs)
+
+9) Libraries used (main)
+- TensorFlow / Keras (model, training, inference)
+- NumPy (arrays)
+- OpenCV (cv2) and Pillow (PIL) (image I/O and processing)
+- Albumentations (data augmentation during preprocessing)
+- scikit‑learn (metrics for evaluation scripts)
+- Pandas (CSV reports)
+- Matplotlib / Seaborn (plots in some scripts)
+- tqdm (progress bars)
+
+10) Files you may want to open
+- 0_information.md  → human friendly overview & quick start
+- 0_final_check.py  → binary predictor (Malignant vs Non‑malignant)
+- 1_final_check.py  → 3-class predictor
+- simple_predict.py → the simplest single‑image binary prediction
+- step2_preprocessing_augmentation.py → how images were preprocessed
+- step6_evaluation.py → evaluation utilities
+
+Notes
+- Keep preprocessing the same at inference (grayscale + CLAHE + normalize), otherwise accuracy drops.
+- The .h5 file contains weights only; scripts rebuild the architecture, then load the weights.

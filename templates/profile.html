@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile - MediMind AI{% endblock %}
+
+{% block content %}
+<div class="profile-container p-4">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="mb-3">Doctor Profile</h2>
+            <p class="text-muted">Manage your account settings and personal information.</p>
+            
+            {% for category, message in get_flashed_messages(with_categories=true) %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            
+            <div class="profile-section mt-4">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="avatar me-4">
+                        {% if doctor.profile_image %}
+                        <img src="{{ url_for('static', filename=doctor.profile_image) }}" alt="Profile Image" class="profile-image">
+                        {% else %}
+                        <div class="avatar-placeholder">
+                            {{ doctor.name[0] }}{{ doctor.name.split()[1][0] if ' ' in doctor.name else '' }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h3 class="m-0">{{ doctor.name }}</h3>
+                        <p class="text-muted m-0">{{ doctor.email }}</p>
+                        {% if doctor.specialty %}
+                        <p class="badge bg-info mt-1">{{ doctor.specialty }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <ul class="nav nav-tabs mb-4" id="profileTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">Personal Info</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="password-tab" data-bs-toggle="tab" data-bs-target="#password" type="button" role="tab" aria-controls="password" aria-selected="false">Change Password</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="profileTabsContent">
+                    <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
+                        <form method="post" action="{{ url_for('profile') }}" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ doctor.name }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="specialty" class="form-label">Medical Specialty</label>
+                                <select class="form-select" id="specialty" name="specialty">
+                                    <option value="" {% if not doctor.specialty %}selected{% endif %}>Select Specialty</option>
+                                    <option value="General Practitioner" {% if doctor.specialty == 'General Practitioner' %}selected{% endif %}>General Practitioner</option>
+                                    <option value="Pediatrician" {% if doctor.specialty == 'Pediatrician' %}selected{% endif %}>Pediatrician</option>
+                                    <option value="Cardiologist" {% if doctor.specialty == 'Cardiologist' %}selected{% endif %}>Cardiologist</option>
+                                    <option value="Dermatologist" {% if doctor.specialty == 'Dermatologist' %}selected{% endif %}>Dermatologist</option>
+                                    <option value="Neurologist" {% if doctor.specialty == 'Neurologist' %}selected{% endif %}>Neurologist</option>
+                                    <option value="Oncologist" {% if doctor.specialty == 'Oncologist' %}selected{% endif %}>Oncologist</option>
+                                    <option value="Radiologist" {% if doctor.specialty == 'Radiologist' %}selected{% endif %}>Radiologist</option>
+                                    <option value="Surgeon" {% if doctor.specialty == 'Surgeon' %}selected{% endif %}>Surgeon</option>
+                                    <option value="Other" {% if doctor.specialty == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" value="{{ doctor.phone or '' }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="email" value="{{ doctor.email }}" disabled>
+                                <div class="form-text">Email address cannot be changed.</div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="profile_image" class="form-label">Profile Photo</label>
+                                <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/*">
+                                <div class="form-text">Upload a new photo to update your profile picture.</div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-primary">Update Profile</button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="password" role="tabpanel" aria-labelledby="password-tab">
+                        <form method="post" action="{{ url_for('profile') }}">
+                            <div class="mb-3">
+                                <label for="current_password" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirm_password" required>
+                                <div id="passwordError" class="text-danger mt-1" style="display: none;">Passwords do not match</div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <button type="submit" id="updatePasswordBtn" class="btn btn-primary">Update Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tab-content {
+        padding-top: 1.5rem;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const newPasswordInput = document.getElementById('new_password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        const passwordError = document.getElementById('passwordError');
+        const updatePasswordBtn = document.getElementById('updatePasswordBtn');
+        
+        function validatePasswords() {
+            if (confirmPasswordInput.value && newPasswordInput.value !== confirmPasswordInput.value) {
+                passwordError.style.display = 'block';
+                updatePasswordBtn.disabled = true;
+            } else {
+                passwordError.style.display = 'none';
+                updatePasswordBtn.disabled = false;
+            }
+        }
+        
+        if (newPasswordInput && confirmPasswordInput) {
+            newPasswordInput.addEventListener('input', validatePasswords);
+            confirmPasswordInput.addEventListener('input', validatePasswords);
+        }
+    });
+</script>
+{% endblock %}

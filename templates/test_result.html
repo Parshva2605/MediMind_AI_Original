@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+
+{# 
+   NOTE: VS Code may show red underlines for Jinja2 expressions in style attributes.
+   These are not actual errors and the template will render correctly.
+   See test_result.html.NOTES file for more details.
+#}
+
+{% block title %}Test Results - MediMind AI{% endblock %}
+
+{% block content %}
+<div class="test-result-container p-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">Test Results</h2>
+                    <p class="text-muted">Patient: <span class="fw-bold">{{ patient.name }}</span> | Test: <span class="fw-bold">{{ test.test_type.replace('_', ' ').title() }}</span></p>
+                </div>
+                
+                {% if test.report_path %}
+                <a href="{{ url_for('view_report', test_id=test.id) }}" class="btn btn-primary">
+                    <i class="fas fa-download me-2"></i>Download Report
+                </a>
+                {% endif %}
+            </div>
+            
+            {% for message in get_flashed_messages() %}
+            <div class="alert alert-info">{{ message }}</div>
+            {% endfor %}
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Original Image</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            {% if test.image_path %}
+                            <img src="{{ url_for('uploaded_file', filename=test.image_path.split('/')[-1] if '/' in test.image_path else test.image_path.split('\\')[-1]) }}" alt="Patient Image" class="img-fluid rounded" style="max-height: 300px;">
+                            {% else %}
+                            <p class="text-muted">No image available</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">AI Analysis Visualization</h5>
+                        </div>
+                        <div class="card-body text-center">
+                            {% if test.result_image_path %}
+                            <img src="{{ url_for('uploaded_file', filename=test.result_image_path.split('/')[-1] if '/' in test.result_image_path else test.result_image_path.split('\\')[-1]) }}" alt="AI Analysis" class="img-fluid rounded" style="max-height: 300px;">
+                            {% else %}
+                            <p class="text-muted">No visualization available</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">AI Prediction Results</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if result %}
+                                {% if result.error %}
+                                <div class="alert alert-danger">
+                                    {{ result.error }}
+                                </div>
+                                {% elif result.prediction %}
+                                <div class="result-item">
+                                    <h5 class="mb-2">
+                                        Prediction: 
+                                        <span class="{% if result.prediction == 'Malignant' %}text-danger{% elif result.prediction == 'Pneumonia' %}text-danger{% else %}text-success{% endif %}">
+                                            {{ result.prediction }}
+                                        </span>
+                                    </h5>
+                                    <div class="progress mb-3">
+                                        <div class="progress-bar 
+                                            {% if result.prediction == 'Malignant' %}bg-danger{% elif result.prediction == 'Pneumonia' %}bg-danger{% else %}bg-success{% endif %}" 
+                                            role="progressbar" 
+                                            {% set confidence_width = result.confidence * 100 %}
+                                            style="width: {{ confidence_width }}%" 
+                                            aria-valuenow="{{ confidence_width }}" 
+                                            aria-valuemin="0" 
+                                            aria-valuemax="100">
+                                            {{ "%.2f"|format(confidence_width) }}%
+                                        </div>
+                                    </div>
+                                    {% if result.probabilities %}
+                                    <div class="mt-3">
+                                        <h6>Detailed Probabilities:</h6>
+                                        <table class="table table-sm">
+                                            {% for class_name, prob in result.probabilities.items() %}
+                                            <tr>
+                                                <td>{{ class_name }}</td>
+                                                <td>{{ "%.2f"|format(prob * 100) }}%</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </table>
+                                    </div>
+                                    {% endif %}
+                                    {% if result.model_info %}
+                                    <p class="text-muted small mt-2">
+                                        <i class="fas fa-info-circle"></i> Model: {{ result.model_info }}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                {% elif result.top_conditions %}
+                                <div class="result-item">
+                                    <h5 class="mb-3">Top Detected Conditions:</h5>
+                                    {% for condition in result.top_conditions %}
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>{{ condition.condition }}</span>
+                                            <span>{{ "%.2f"|format(condition.probability * 100) }}%</span>
+                                        </div>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" 
+                                                {% set probability_width = condition.probability * 100 %}
+                                                style="width: {{ probability_width }}%" 
+                                                aria-valuenow="{{ probability_width }}" 
+                                                aria-valuemin="0" 
+                                                aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <!-- Show all 14 disease predictions -->
+                                {% if result.all_predictions %}
+                                <div class="result-item mt-4">
+                                    <h5 class="mb-3">All Disease Predictions:</h5>
+                                    {% if result.threshold_used %}
+                                    <p class="text-muted small mb-3">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Detection threshold: {{ (result.threshold_used * 100)|int }}% 
+                                        (optimized for {{ result.model_info|default('this model') }})
+                                    </p>
+                                    {% endif %}
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Disease</th>
+                                                    <th>Probability</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for disease, probability in result.all_predictions.items() %}
+                                                <tr {% if disease in result.above_threshold %}class="table-warning"{% endif %}>
+                                                    <td><strong>{{ disease }}</strong></td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <span class="me-2">{{ "%.2f"|format(probability * 100) }}%</span>
+                                                            <div class="progress" style="width: 100px; height: 8px;">
+                                                                <div class="progress-bar {% if disease in result.above_threshold %}bg-warning{% else %}bg-secondary{% endif %}" 
+                                                                     role="progressbar" 
+                                                                     {% set probability_width = probability * 100 %}
+                                                                     style="width: {{ probability_width }}%" 
+                                                                     aria-valuenow="{{ probability_width }}" 
+                                                                     aria-valuemin="0" 
+                                                                     aria-valuemax="100">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        {% if disease in result.above_threshold %}
+                                                        <span class="badge bg-warning text-dark">
+                                                            <i class="fas fa-exclamation-triangle me-1"></i>Detected
+                                                        </span>
+                                                        {% else %}
+                                                        <span class="badge bg-success">
+                                                            <i class="fas fa-check me-1"></i>Normal
+                                                        </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% if result.total_detected is defined %}
+                                    <div class="alert {% if result.total_detected == 0 %}alert-success{% else %}alert-warning{% endif %} mt-3">
+                                        <strong>Summary:</strong> 
+                                        {% if result.total_detected == 0 %}
+                                        <i class="fas fa-check-circle me-1"></i>No diseases detected - X-ray appears normal
+                                        {% else %}
+                                        <i class="fas fa-exclamation-circle me-1"></i>{{ result.total_detected }} condition(s) detected above threshold
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                {% endif %}
+                            {% else %}
+                            <p class="text-muted">No results available</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Doctor's Notes</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('add_notes', test_id=test.id) }}" method="post">
+                                <div class="mb-3">
+                                    <textarea class="form-control" name="doctor_notes" rows="5" placeholder="Add your medical observations and recommendations here...">{{ test.doctor_notes or '' }}</textarea>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Save Notes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Summary Section (only shown if available) -->
+            {% if test.ai_summary %}
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-robot me-2"></i>AI Assisted Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="ai-summary">
+                                <div class="formatted-ai-summary" id="aiSummaryContent" data-content="{{ test.ai_summary }}">
+                                    <!-- Content will be rendered by JavaScript -->
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted fst-italic">
+                                    <i class="fas fa-exclamation-circle me-1"></i>
+                                    This AI summary is generated to assist healthcare professionals and should not replace professional medical advice.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+                <a href="{{ url_for('test', patient_id=patient.id) }}" class="btn btn-outline-primary">
+                    <i class="fas fa-vial me-2"></i>Run Another Test
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Format the AI summary from Markdown to HTML
+    const aiSummaryDiv = document.getElementById('aiSummaryContent');
+    if (aiSummaryDiv) {
+        const markdown = aiSummaryDiv.getAttribute('data-content');
+        if (markdown) {
+            // Format the markdown content
+            let html = '';
+            
+            // Split into paragraphs
+            const paragraphs = markdown.split('\n\n');
+            
+            paragraphs.forEach(paragraph => {
+                paragraph = paragraph.trim();
+                
+                if (paragraph.startsWith('# ')) {
+                    // Heading 1
+                    html += '<h4>' + paragraph.substring(2) + '</h4>';
+                } else if (paragraph.startsWith('## ')) {
+                    // Heading 2
+                    html += '<h5>' + paragraph.substring(3) + '</h5>';
+                } else if (paragraph.startsWith('### ')) {
+                    // Heading 3
+                    html += '<h6>' + paragraph.substring(4) + '</h6>';
+                } else if (/^\d+\.\s/.test(paragraph.split('\n')[0])) {
+                    // Numbered list
+                    html += '<ol>';
+                    const items = paragraph.split('\n');
+                    items.forEach(item => {
+                        if (/^\d+\.\s/.test(item)) {
+                            html += '<li>' + item.replace(/^\d+\.\s/, '') + '</li>';
+                        }
+                    });
+                    html += '</ol>';
+                } else if (/^[-*]\s/.test(paragraph.split('\n')[0])) {
+                    // Bullet list
+                    html += '<ul>';
+                    const items = paragraph.split('\n');
+                    items.forEach(item => {
+                        if (/^[-*]\s/.test(item)) {
+                            html += '<li>' + item.replace(/^[-*]\s/, '') + '</li>';
+                        }
+                    });
+                    html += '</ul>';
+                } else {
+                    // Regular paragraph
+                    html += '<p>' + paragraph + '</p>';
+                }
+            });
+            
+            aiSummaryDiv.innerHTML = html;
+        }
+    }
+});
+</script>
+{% endblock %}

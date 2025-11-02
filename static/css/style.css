@@ -1,0 +1,297 @@
+/* Main Styles */
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2ecc71;
+    --light-bg: #f5f9fa;
+    --dark-text: #2c3e50;
+    --light-text: #7f8c8d;
+    --danger-color: #e74c3c;
+    --warning-color: #f39c12;
+    --success-color: #27ae60;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background-color: var(--light-bg);
+    color: var(--dark-text);
+}
+
+/* Sidebar */
+.sidebar {
+    min-height: 100vh;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+}
+
+.sidebar .logo-icon {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.sidebar h3 {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.sidebar .nav-link {
+    color: var(--dark-text);
+    border-radius: 5px;
+    padding: 0.75rem 1rem;
+    margin: 0.25rem 0;
+}
+
+.sidebar .nav-link:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.sidebar .nav-link.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.profile-section {
+    color: var(--dark-text);
+}
+
+/* Main Content */
+.main-content {
+    padding: 0;
+    min-height: 100vh;
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    background-color: white;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+}
+
+/* Login Page */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--light-bg);
+}
+
+.login-form {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Dashboard */
+.status-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 75%;
+    font-weight: 600;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 10rem;
+    color: white;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+/* AI Summary Styles */
+.formatted-ai-summary {
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    line-height: 1.6;
+}
+
+.formatted-ai-summary h4 {
+    color: var(--primary-color);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    font-size: 1.4rem;
+}
+
+.formatted-ai-summary h5 {
+    color: var(--dark-text);
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.formatted-ai-summary h6 {
+    color: var(--dark-text);
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.formatted-ai-summary p {
+    margin-bottom: 1rem;
+}
+
+.formatted-ai-summary ul, .formatted-ai-summary ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+.formatted-ai-summary li {
+    margin-bottom: 0.5rem;
+}
+
+/* Delete Patient Modal */
+.modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.text-danger {
+    color: var(--danger-color) !important;
+}
+
+.dropdown-item.text-danger:hover {
+    background-color: rgba(231, 76, 60, 0.1);
+}
+
+.btn-danger {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+    border-color: #c0392b;
+}
+
+.welcome-section {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
+}
+
+.welcome-section h2 {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.doctor-stats h3 {
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.profile-link img {
+    border: 3px solid var(--primary-color);
+    transition: transform 0.3s ease;
+}
+
+.profile-link img:hover {
+    transform: scale(1.05);
+}
+
+.patient-card .card-footer {
+    border-top: none;
+}
+
+/* Avatar and Profile */
+.avatar img {
+    border: 2px solid white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    object-fit: cover;
+}
+
+.profile-section .avatar img {
+    transition: all 0.3s ease;
+}
+
+.profile-section .avatar img:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.avatar-placeholder {
+    width: 100px;
+    height: 100px;
+    background-color: #e9ecef;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: bold;
+    color: #6c757d;
+}
+
+.profile-image {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Test Page */
+.test-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    height: 100%;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 1rem;
+}
+
+.test-card.active {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25);
+}
+
+.drop-zone {
+    max-width: 100%;
+    height: 200px;
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    border: 2px dashed #ddd;
+    border-radius: 10px;
+}
+
+.drop-zone--over {
+    border-color: var(--primary-color);
+}
+
+.drop-zone__input {
+    display: none;
+}
+
+.drop-zone__prompt {
+    color: var(--light-text);
+}
+
+.image-preview {
+    position: relative;
+}
+
+.image-preview .btn-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: white;
+    border-radius: 50%;
+    padding: 8px;
+}

@@ -1,0 +1,9 @@
+NOTE TO DEVELOPERS:
+
+The red underlines in the test_result.html file are not actual errors but limitations in VS Code's syntax highlighting for Jinja2 templates inside CSS style attributes.
+
+The following lines will have red underlines but will work correctly when rendered:
+- style="width: {{ confidence_width }}%"
+- style="width: {{ probability_width }}%"
+
+These are valid Jinja2 template expressions that will be properly processed when the Flask app renders the template. You can safely ignore these visual indicators.

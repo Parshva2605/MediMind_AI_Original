@@ -1,0 +1,87 @@
+covid model: how it was made (simple, point-wise)
+===============================================
+
+Model file you asked about:
+- Path: C:\Users\91851\Desktop\datasets\covid -19\checkpoints\model_epoch_28_acc_0.8987.h5
+- What it is: Best checkpoint (weights) of a transfer-learning model for 4-way chest X‑ray classification
+  (classes: COVID, Lung_Opacity, Normal, Viral Pneumonia)
+
+1) Dataset (what data it used)
+- Location: covid_split_dataset/ (already in this workspace)
+  - train/ (used for training, with an internal 15% validation split)
+  - test/  (kept separate for final evaluation)
+- Classes: COVID, Lung_Opacity, Normal, Viral Pneumonia
+- Image size during training: 300 × 300 (RGB)
+- Preprocessing: EfficientNet preprocess_input (scales/normalizes pixels as EfficientNet expects)
+
+2) Libraries used
+- TensorFlow / Keras (model, training, augmentations)
+- NumPy (arrays, math)
+- scikit-learn (compute_class_weight to balance classes)
+- Matplotlib (plot training curves)
+- Python stdlib: os, json, datetime, argparse, re (config/paths/logging)
+
+3) Model architecture (layers)
+- Base: EfficientNetB3 (pretrained on ImageNet), include_top=False
+  - Input: (300, 300, 3)
+  - Fine-tuning: first frozen, then top layers unfrozen (last 100 layers trainable)
+- Custom classifier head (on top of the base):
+  1) GlobalAveragePooling2D
+  2) Dense(512, activation='relu', kernel_regularizer=L2(0.001))
+     + BatchNormalization + Dropout(0.5)
+  3) Dense(256, activation='relu', kernel_regularizer=L2(0.001))
+     + BatchNormalization + Dropout(0.4)
+  4) Dense(128, activation='relu', kernel_regularizer=L2(0.001))
+     + BatchNormalization + Dropout(0.3)
+  5) Dense(4, activation='softmax')  # outputs 4 class probabilities
+
+4) Training recipe (how it was trained)
+- Two phases:
+  - Phase 1 (transfer learning):
+    • Base EfficientNetB3 frozen
+    • Optimizer: Adam, learning rate = 3e-4
+    • Loss: CategoricalCrossentropy with label_smoothing=0.05
+    • Metrics: accuracy, top-2 accuracy, AUC
+  - Phase 2 (fine-tune):
+    • Unfreeze top part of EfficientNetB3 (about 100 layers)
+    • Adam, lower learning rate = 1e-5
+    • Same loss/metrics as above
+- Data augmentation (on-the-fly):
+  • rotation up to ±30°
+  • width/height shift up to 0.2
+  • shear 0.2, zoom up to 0.3
+  • horizontal flip, brightness [0.8, 1.2]
+- Class balancing: computed class_weights from the training set (helps with imbalance)
+- Callbacks used:
+  • EarlyStopping (monitor val_accuracy, patience=10, restore best weights)
+  • ReduceLROnPlateau (monitor val_loss, factor=0.5, patience=5)
+  • Custom checkpoints (save WEIGHTS to H5 to avoid JSON issues)
+  • Overfitting detector (reduces LR, snapshots when val_loss drifts)
+- Batch size: 16
+- Image size: 300×300
+
+5) Training length (time and steps)
+- Epochs run: up to 50 total (20 in Phase 1 + 30 in Phase 2)
+- Best model came from: epoch 28 (file: model_epoch_28_acc_0.8987.h5)
+- Steps per epoch: roughly = ceil(num_training_images / batch_size)
+  (depends on how many images you have per class in train/)
+- Time: depends on your GPU/CPU. On a single typical GPU, running ~28 epochs usually takes a few hours.
+  (Exact duration varies by hardware and settings.)
+
+6) What the checkpoint file is
+- model_epoch_28_acc_0.8987.h5 stores ONLY the weights (not the full model).
+- To use it: rebuild the same architecture in code, then call model.load_weights(<path>). (Example: see covid.py)
+
+7) Results (for quick context)
+- Overall test accuracy: ~91.45%
+- COVID class detection on full COVID folder: ~92.70% (3352 correct out of 3616 tested)
+
+8) How to load and use (short)
+- Build the same model (EfficientNetB3 base + the head above) with input (300,300,3)
+- Call: model.load_weights('checkpoints/model_epoch_28_acc_0.8987.h5')
+- Preprocess any input image to 300×300 and use EfficientNet preprocess_input
+- model.predict(...) → get 4 probabilities: [COVID, Lung_Opacity, Normal, Viral Pneumonia]
+
+Notes
+- This is a strong, production-ready baseline. If you change the architecture, the weights file won’t load.
+- For training or evaluation scripts, see: train_advanced_cnn.py, evaluate_best_checkpoint.py, covid.py.

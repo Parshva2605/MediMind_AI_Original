@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - MediMind AI{% endblock %}
+
+{% block content %}
+<div class="dashboard-container p-4">
+    <div class="welcome-section mb-4 p-4 bg-white rounded shadow-sm">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2>Welcome, Dr. {{ session.doctor_name }}!</h2>
+                <p class="text-muted">{{ now.strftime('%A, %B %d, %Y') if now is not string else now }}</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="d-flex justify-content-md-end align-items-center">
+                    <div class="doctor-stats me-4 text-center">
+                        <h3>{{ patients|length }}</h3>
+                        <span class="text-muted small">Patients</span>
+                    </div>
+                    <div class="profile-link">
+                        {% if session.profile_image %}
+                        <a href="{{ url_for('profile') }}">
+                            <img src="{{ url_for('static', filename=session.profile_image) }}" alt="Profile" class="rounded-circle" width="60" height="60">
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('profile') }}">
+                            <img src="{{ url_for('static', filename='images/avatar.png') }}" alt="Profile" class="rounded-circle" width="60" height="60">
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Patient Dashboard</h2>
+            <p class="text-muted">Manage your patients and their AI test results.</p>
+        </div>
+        <div class="d-flex">
+            <div class="search-bar me-2">
+                <input type="text" class="form-control" id="searchPatient" placeholder="Search patients...">
+            </div>
+            <a href="{{ url_for('new_patient') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>New Patient
+            </a>
+        </div>
+    </div>
+    
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% if patients %}
+            {% for patient in patients %}
+                <div class="col patient-card">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h4 class="card-title">{{ patient.name }}</h4>
+                            <p class="text-muted">{{ patient.age }} years old • {{ patient.gender }}</p>
+                            
+                            <p>{{ patient.medical_history }}</p>
+                            <p class="text-muted small">Last Visit: {{ patient.last_visit_formatted }}</p>
+                            
+                            <div class="status-badge 
+                                {% if patient.status == 'Completed' %}bg-success
+                                {% elif patient.status == 'In Progress' %}bg-info
+                                {% else %}bg-secondary{% endif %}">
+                                {{ patient.status }}
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent d-flex justify-content-between">
+                            {% if patient.has_report and patient.latest_test_with_report %}
+                            <a href="{{ url_for('view_report', test_id=patient.latest_test_with_report.id) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-file-alt me-1"></i> View Report
+                            </a>
+                            {% else %}
+                            <button class="btn btn-outline-secondary btn-sm" disabled>
+                                <i class="fas fa-file-alt me-1"></i> No Report
+                            </button>
+                            {% endif %}
+                            
+                            {% if patient.status == 'In Progress' %}
+                            <a href="{{ url_for('test', patient_id=patient.id) }}" class="btn btn-info btn-sm">
+                                <i class="fas fa-vial me-1"></i> Start Test
+                            </a>
+                            {% elif patient.status == 'Pending' %}
+                            <a href="{{ url_for('test', patient_id=patient.id) }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-vial me-1"></i> Start Test
+                            </a>
+                            {% endif %}
+                            
+                            <button type="button" class="btn btn-link btn-sm text-muted" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">Edit Patient</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('test', patient_id=patient.id) }}">New Test</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" 
+                                       data-bs-toggle="modal" 
+                                       data-bs-target="#deletePatientModal{{ patient.id }}">
+                                        <i class="fas fa-trash-alt me-1"></i> Delete Patient
+                                    </a>
+                                </li>
+                            </ul>
+                            
+                            <!-- Delete Patient Modal -->
+                            <div class="modal fade" id="deletePatientModal{{ patient.id }}" tabindex="-1" aria-labelledby="deletePatientModalLabel{{ patient.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="deletePatientModalLabel{{ patient.id }}">Confirm Deletion</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p>Are you sure you want to delete <strong>{{ patient.name }}</strong>?</p>
+                                            <p class="text-danger">This action cannot be undone. All patient data and test results will be permanently deleted.</p>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <a href="{{ url_for('delete_patient', patient_id=patient.id) }}" class="btn btn-danger">
+                                                <i class="fas fa-trash-alt me-1"></i> Delete Patient
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h5>No patients found</h5>
+                    <p>Start by adding a new patient using the "New Patient" button.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('searchPatient');
+    const patientCards = document.querySelectorAll('.patient-card');
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        patientCards.forEach(card => {
+            const patientName = card.querySelector('.card-title').textContent.toLowerCase();
+            const medicalHistory = card.querySelector('.card-body p').textContent.toLowerCase();
+            
+            if (patientName.includes(searchTerm) || medicalHistory.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

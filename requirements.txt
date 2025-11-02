@@ -1,0 +1,15 @@
+# Core dependencies (required)
+Flask>=2.0.0
+supabase>=1.0.0
+python-dotenv>=1.0.0
+Werkzeug>=2.0.0
+
+# AI-related dependencies (optional but recommended for full functionality)
+# tensorflow>=2.10.0  # Uncomment to enable AI features
+# numpy>=1.20.0       # Needed for TensorFlow
+# Pillow>=9.0.0       # For image processing
+
+# Visualization and report generation (optional)
+# opencv-python>=4.5.0  # For image processing and heatmaps
+# matplotlib>=3.5.0     # For visualizations
+# fpdf>=1.7.2           # For PDF report generation

@@ -1252,6 +1252,25 @@ def generate_report(patient, test):
         ai_summary = generate_ai_summary(patient, test, result_data)
         print(f"Generated AI summary: {ai_summary[:100]}...")
         
+        # Helper function to sanitize text for PDF (remove Unicode characters)
+        def sanitize_for_pdf(text):
+            """Remove Unicode characters that can't be encoded in latin-1"""
+            if not text:
+                return ""
+            # Convert to string if not already
+            text = str(text)
+            # Replace common Unicode characters with ASCII equivalents
+            replacements = {
+                '•': '-', '→': '->', '–': '-', '—': '-',
+                '"': '"', '"': '"', ''': "'", ''': "'",
+                '…': '...', '°': ' degrees', '×': 'x',
+                '≥': '>=', '≤': '<=', '±': '+/-'
+            }
+            for unicode_char, ascii_char in replacements.items():
+                text = text.replace(unicode_char, ascii_char)
+            # Remove any remaining non-ASCII characters
+            return text.encode('ascii', 'ignore').decode('ascii')
+        
         # Create a PDF report
         pdf = FPDF()
         pdf.add_page()
@@ -1265,49 +1284,49 @@ def generate_report(patient, test):
         pdf.cell(0, 10, f"Patient Information", 0, 1)
         pdf.set_font('Arial', '', 10)
         
-        # Safely access patient information
-        pdf.cell(0, 6, f"Name: {patient.get('name', 'Unknown')}", 0, 1)
-        pdf.cell(0, 6, f"Age: {patient.get('age', 'Unknown')}", 0, 1)
-        pdf.cell(0, 6, f"Gender: {patient.get('gender', 'Unknown')}", 0, 1)
-        pdf.cell(0, 6, f"Medical History: {patient.get('medical_history', 'None')}", 0, 1)
+        # Safely access patient information with sanitization
+        pdf.cell(0, 6, sanitize_for_pdf(f"Name: {patient.get('name', 'Unknown')}"), 0, 1)
+        pdf.cell(0, 6, sanitize_for_pdf(f"Age: {patient.get('age', 'Unknown')}"), 0, 1)
+        pdf.cell(0, 6, sanitize_for_pdf(f"Gender: {patient.get('gender', 'Unknown')}"), 0, 1)
+        pdf.cell(0, 6, sanitize_for_pdf(f"Medical History: {patient.get('medical_history', 'None')}"), 0, 1)
         
         # Test results
         pdf.set_font('Arial', 'B', 12)
-        pdf.cell(0, 10, f"Test Results - {test.get('test_type', 'Unknown').replace('_', ' ').title()}", 0, 1)
+        pdf.cell(0, 10, sanitize_for_pdf(f"Test Results - {test.get('test_type', 'Unknown').replace('_', ' ').title()}"), 0, 1)
         pdf.set_font('Arial', '', 10)
         
         # Format and add the test results
         try:
             result = json.loads(test.get('result', '{}'))
             if 'error' in result:
-                pdf.cell(0, 6, f"Error: {result['error']}", 0, 1)
+                pdf.cell(0, 6, sanitize_for_pdf(f"Error: {result['error']}"), 0, 1)
             elif 'prediction' in result:
-                # Simple prediction (Breast Cancer, COVID-19)
-                pdf.cell(0, 6, f"Prediction: {result['prediction']}", 0, 1)
-                pdf.cell(0, 6, f"Confidence: {result.get('confidence', 0)*100:.2f}%", 0, 1)
+                # Simple prediction (Breast Cancer, COVID-19, Lung Cancer)
+                pdf.cell(0, 6, sanitize_for_pdf(f"Prediction: {result['prediction']}"), 0, 1)
+                pdf.cell(0, 6, sanitize_for_pdf(f"Confidence: {result.get('confidence', 0)*100:.2f}%"), 0, 1)
             elif 'top_conditions' in result:
                 # Chest X-Ray (14 diseases)
                 pdf.cell(0, 6, "Top 3 Detected Conditions:", 0, 1)
                 for item in result['top_conditions']:
-                    pdf.cell(0, 6, f"  - {item.get('condition', 'Unknown')}: {item.get('probability', 0)*100:.2f}%", 0, 1)
+                    pdf.cell(0, 6, sanitize_for_pdf(f"  - {item.get('condition', 'Unknown')}: {item.get('probability', 0)*100:.2f}%"), 0, 1)
                 
                 # Add threshold and model info
                 if 'threshold_used' in result:
                     pdf.ln(3)
                     pdf.set_font('Arial', 'I', 9)
-                    pdf.cell(0, 6, f"Detection Threshold: {result.get('threshold_used', 0.5)*100:.0f}%", 0, 1)
+                    pdf.cell(0, 6, sanitize_for_pdf(f"Detection Threshold: {result.get('threshold_used', 0.5)*100:.0f}%"), 0, 1)
                     if 'model_info' in result:
-                        pdf.cell(0, 6, f"Model: {result.get('model_info', 'N/A')}", 0, 1)
+                        pdf.cell(0, 6, sanitize_for_pdf(f"Model: {result.get('model_info', 'N/A')}"), 0, 1)
                     pdf.set_font('Arial', '', 10)
                 
                 # Add all detected diseases (above threshold)
                 if 'above_threshold' in result and result['above_threshold']:
                     pdf.ln(5)
                     pdf.set_font('Arial', 'B', 11)
-                    pdf.cell(0, 6, f"All Detected Conditions ({len(result['above_threshold'])} found):", 0, 1)
+                    pdf.cell(0, 6, sanitize_for_pdf(f"All Detected Conditions ({len(result['above_threshold'])} found):"), 0, 1)
                     pdf.set_font('Arial', '', 10)
                     for disease, prob in result['above_threshold'].items():
-                        pdf.cell(0, 6, f"  - {disease}: {prob*100:.2f}%", 0, 1)
+                        pdf.cell(0, 6, sanitize_for_pdf(f"  - {disease}: {prob*100:.2f}%"), 0, 1)
                 elif 'total_detected' in result and result['total_detected'] == 0:
                     pdf.ln(3)
                     pdf.set_font('Arial', 'B', 11)
@@ -1361,7 +1380,7 @@ def generate_report(patient, test):
         pdf.set_font('Arial', 'B', 12)
         pdf.cell(0, 10, "Doctor's Notes", 0, 1)
         pdf.set_font('Arial', '', 10)
-        pdf.multi_cell(0, 6, test.get('doctor_notes', "No notes provided."))
+        pdf.multi_cell(0, 6, sanitize_for_pdf(test.get('doctor_notes', "No notes provided.")))
         
         # Add AI Summary Section - use either a provided summary or generate one on-the-fly
         summary_text = None
@@ -1405,6 +1424,21 @@ def generate_report(patient, test):
                 if not line:
                     pdf.ln()
                     continue
+                
+                # Replace Unicode characters with ASCII-safe alternatives
+                # This prevents 'latin-1' codec errors
+                line = line.replace('•', '-')  # Bullet point
+                line = line.replace('→', '->')  # Arrow
+                line = line.replace('–', '-')   # En dash
+                line = line.replace('—', '-')   # Em dash
+                line = line.replace('"', '"')   # Smart quotes
+                line = line.replace('"', '"')
+                line = line.replace(''', "'")
+                line = line.replace(''', "'")
+                line = line.replace('…', '...')  # Ellipsis
+                
+                # Remove any remaining non-ASCII characters
+                line = line.encode('ascii', 'ignore').decode('ascii')
                     
                 # Handle markdown headings
                 if line.startswith('# '):
@@ -1421,7 +1455,7 @@ def generate_report(patient, test):
                     pdf.set_font('Arial', '', 10)
                 # Handle markdown lists
                 elif line.startswith('- ') or line.startswith('* '):
-                    pdf.multi_cell(0, 6, '• ' + line[2:])
+                    pdf.multi_cell(0, 6, '  - ' + line[2:])  # Use ASCII dash instead of bullet
                 elif line[0:2].isdigit() and line[2:4] in ['. ', ') ']:
                     pdf.multi_cell(0, 6, line)
                 else:
